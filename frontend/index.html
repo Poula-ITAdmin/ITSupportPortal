@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IT Support Portal</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container">
+      <a href="#" class="logo" onclick="navigate('home'); return false;">IT Support Portal</a>
+      <nav class="nav" id="nav">
+        <a href="#" class="nav-link" onclick="navigate('home'); return false;" data-i18n="navHome">Home</a>
+        <a href="#" class="nav-link" id="my-tickets-link" onclick="navigate('my-tickets'); return false;" style="display:none" data-i18n="navMyTickets">My Tickets</a>
+        <a href="#" class="nav-link" id="dashboard-link" onclick="navigate('dashboard'); return false;" style="display:none" data-i18n="navDashboard">Dashboard</a>
+        <a href="#" class="nav-link" id="admin-link" onclick="navigate('admin'); return false;" style="display:none">Admin</a>
+        <span id="user-name"></span>
+        <a href="#" class="nav-link" id="login-link" onclick="showAuth('login'); return false;" data-i18n="navLogin">Login</a>
+        <a href="#" class="nav-link" id="logout-link" onclick="logout(); return false;" style="display:none" data-i18n="navLogout">Logout</a>
+        <button class="btn btn-sm" onclick="toggleLanguage()" style="margin-left: 8px;" id="lang-toggle">العربية</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="home-page" class="page active">
+      <div style="text-align: center; padding: 40px 0 20px;">
+        <h1 style="font-size: 32px; margin-bottom: 12px;">How can we help you today?</h1>
+        <p style="color: var(--text-light);">Select a category below to report your issue</p>
+      </div>
+      
+      <div class="category-grid">
+        <div class="category-card" onclick="selectCategory('Devices')">
+          <div class="category-icon">💻</div>
+          <h3>Devices</h3>
+          <p>Laptop, printer, monitor, network issues</p>
+        </div>
+        
+        <div class="category-card" onclick="selectCategory('Personal Device')">
+          <div class="category-icon">📱</div>
+          <h3>Personal Device</h3>
+          <p>BYOD issues, personal laptop, mobile devices</p>
+        </div>
+        
+        <div class="category-card" onclick="selectCategory('Medical Device')">
+          <div class="category-icon">🏥</div>
+          <h3>Medical Device</h3>
+          <p>Medical equipment, diagnostic devices, patient monitors</p>
+        </div>
+        
+        <div class="category-card" onclick="selectCategory('Software')">
+          <div class="category-icon">📀</div>
+          <h3>Software Issue</h3>
+          <p>ERP problems, Windows, application errors</p>
+        </div>
+        
+        <div class="category-card" onclick="selectCategory('Access')">
+          <div class="category-icon">🔐</div>
+          <h3>Access / Accounts</h3>
+          <p>Password reset, permissions, access request</p>
+        </div>
+        
+        <div class="category-card" onclick="selectCategory('Maintenance & Repairs')">
+          <div class="category-icon">🔧</div>
+          <h3>Maintenance & Repairs</h3>
+          <p>Scheduled maintenance, repairs, equipment servicing</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="ticket-form-page" class="page">
+      <h2 class="page-title" id="form-title">Submit IT Support Ticket</h2>
+      
+      <div class="card">
+        <form id="ticket-form" onsubmit="submitTicket(event)">
+          <input type="hidden" id="category" name="category">
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Your Name</label>
+              <input type="text" class="form-input" id="user-name-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Main Department</label>
+              <select class="form-select" id="main-department" required onchange="updateSubDepartments()">
+                <option value="">Select department</option>
+                <option value="Hospital">Hospital</option>
+                <option value="Mission">Mission</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Sub-Department</label>
+              <select class="form-select" id="sub-department" required>
+                <option value="">Select sub-department</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-input" id="email" required>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Phone Extension</label>
+              <input type="text" class="form-input" id="phone">
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Issue Title</label>
+            <input type="text" class="form-input" id="title" placeholder="Brief description of the issue" required>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea class="form-textarea" id="description" placeholder="Please describe your issue in detail" required></textarea>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Urgency Level</label>
+              <select class="form-select" id="urgency" required>
+                <option value="Low">Low - Can wait</option>
+                <option value="Medium" selected>Medium - Needs attention</option>
+                <option value="High">High - Urgent</option>
+              </select>
+            </div>
+          </div>
+          
+          <div id="devices-fields" class="dynamic-fields">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Device Type</label>
+                <select class="form-select" id="device_type">
+                  <option value="">Select device type</option>
+                  <option value="Laptop">Laptop</option>
+                  <option value="Desktop">Desktop</option>
+                  <option value="Printer">Printer</option>
+                  <option value="Monitor">Monitor</option>
+                  <option value="Network">Network Equipment</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Asset Number</label>
+                <input type="text" class="form-input" id="asset_number" placeholder="e.g., LAP-001">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Is the device working?</label>
+              <select class="form-select" id="device_working">
+                <option value="">Select status</option>
+                <option value="Yes">Yes, but has issues</option>
+                <option value="No">No, not working at all</option>
+              </select>
+            </div>
+          </div>
+          
+          <div id="personal-device-fields" class="dynamic-fields">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Device Type</label>
+                <select class="form-select" id="device_type">
+                  <option value="">Select device type</option>
+                  <option value="Personal Laptop">Personal Laptop</option>
+                  <option value="Personal Desktop">Personal Desktop</option>
+                  <option value="Mobile Phone">Mobile Phone</option>
+                  <option value="Tablet">Tablet</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Device Owner</label>
+                <input type="text" class="form-input" id="device_owner" placeholder="Employee name">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Issue Description</label>
+              <textarea class="form-textarea" id="personal_issue" placeholder="Describe the issue with your personal device"></textarea>
+            </div>
+          </div>
+          
+          <div id="medical-device-fields" class="dynamic-fields">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Device Name</label>
+                <input type="text" class="form-input" id="medical_device_name" placeholder="e.g., MRI Scanner, Patient Monitor">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Device ID / Serial Number</label>
+                <input type="text" class="form-input" id="medical_device_id" placeholder="Medical device serial number">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Department</label>
+                <input type="text" class="form-input" id="medical_department" placeholder="e.g., ICU, Radiology">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Urgency Level</label>
+                <select class="form-select" id="medical_urgency">
+                  <option value="">Select urgency</option>
+                  <option value="Critical">Critical - Patient care affected</option>
+                  <option value="High">High - Urgent</option>
+                  <option value="Medium">Medium - Needs attention</option>
+                  <option value="Low">Low - Can wait</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Issue Description</label>
+              <textarea class="form-textarea" id="medical_issue" placeholder="Describe the malfunction or issue"></textarea>
+            </div>
+          </div>
+          
+          <div id="software-fields" class="dynamic-fields">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Software Name</label>
+                <input type="text" class="form-input" id="software_name" placeholder="e.g., ERP System, MS Excel">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Error Message (if any)</label>
+                <input type="text" class="form-input" id="error_message" placeholder="Paste error message here">
+              </div>
+            </div>
+          </div>
+          
+            <div id="access-fields" class="dynamic-fields">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Application/System</label>
+                  <input type="text" class="form-input" id="application_access" placeholder="e.g., SharePoint, HR Portal">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Current Role</label>
+                  <input type="text" class="form-input" id="current_role" placeholder="Your current role">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Required Permissions</label>
+                <input type="text" class="form-input" id="required_permissions" placeholder="e.g., Admin access, Read/Write">
+              </div>
+            </div>
+            
+            <div id="maintenance-fields" class="dynamic-fields">
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Equipment/System Name</label>
+                  <input type="text" class="form-input" id="equipment_name" placeholder="e.g., HVAC System, Generator">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Location</label>
+                  <input type="text" class="form-input" id="equipment_location" placeholder="e.g., Building A, Floor 2">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Maintenance Type</label>
+                  <select class="form-select" id="maintenance_type">
+                    <option value="">Select type</option>
+                    <option value="Preventive">Preventive Maintenance</option>
+                    <option value="Corrective">Corrective Repair</option>
+                    <option value="Inspection">Inspection</option>
+                    <option value="Installation">New Installation</option>
+                    <option value="Upgrade">Upgrade</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Scheduled Date (if applicable)</label>
+                  <input type="date" class="form-input" id="scheduled_date">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Issue Description</label>
+                <textarea class="form-textarea" id="maintenance_description" placeholder="Describe the maintenance or repair needed"></textarea>
+              </div>
+            </div>
+          
+          <div style="display: flex; gap: 12px; margin-top: 24px;">
+            <button type="submit" class="btn btn-primary">Submit Ticket</button>
+            <button type="button" class="btn btn-outline" onclick="navigate('home')">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="my-tickets-page" class="page">
+      <h2 class="page-title">My Tickets</h2>
+      <div class="ticket-list" id="my-tickets-list"></div>
+    </div>
+
+    <div id="dashboard-page" class="page">
+      <h2 class="page-title">IT Dashboard</h2>
+      
+      <div class="dashboard-stats" id="dashboard-stats"></div>
+      
+      <div class="filter-bar">
+        <select id="filter-category" onchange="loadDashboard()">
+          <option value="">All Categories</option>
+          <option value="Devices">Devices</option>
+          <option value="Personal Device">Personal Device</option>
+          <option value="Medical Device">Medical Device</option>
+          <option value="Software">Software</option>
+          <option value="Access">Access</option>
+          <option value="Maintenance & Repairs">Maintenance & Repairs</option>
+        </select>
+        <select id="filter-status" onchange="loadDashboard()">
+          <option value="">All Statuses</option>
+          <option value="Open">Open</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Pending User">Pending User</option>
+          <option value="Completed">Completed</option>
+        </select>
+        <select id="filter-urgency" onchange="loadDashboard()">
+          <option value="">All Priorities</option>
+          <option value="High">High</option>
+          <option value="Medium">Medium</option>
+          <option value="Low">Low</option>
+        </select>
+      </div>
+      
+      <div class="ticket-list" id="dashboard-tickets"></div>
+    </div>
+
+    <div id="ticket-detail-page" class="page">
+      <div class="ticket-detail">
+        <button class="btn btn-outline btn-sm" onclick="navigate('dashboard')" style="margin-bottom: 16px;">← Back to Dashboard</button>
+        
+        <div id="ticket-detail-content"></div>
+        
+        <div class="card" style="margin-top: 24px;">
+          <h3 style="margin-bottom: 16px;">Update Status</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Status</label>
+              <select class="form-select" id="update-status">
+                <option value="Open">Open</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Pending User">Pending User</option>
+                <option value="Escalated">Escalated</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Reassign To</label>
+              <select class="form-select" id="update-assign">
+                <option value="">Unassigned</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea class="form-textarea" id="update-notes" placeholder="Add notes about this update..."></textarea>
+          </div>
+          <button class="btn btn-primary" onclick="updateTicket()">Update Ticket</button>
+        </div>
+        
+        <div class="card" style="margin-top: 24px;">
+          <h3 style="margin-bottom: 16px;">Activity History</h3>
+          <div class="timeline" id="ticket-timeline"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="admin-page" class="page">
+      <h2 class="page-title" data-i18n="admin">Admin Panel</h2>
+      
+      <div class="dashboard-stats" id="admin-stats"></div>
+      
+      <div class="card" style="margin-top: 24px;">
+        <h3 style="margin-bottom: 16px;" data-i18n="teamWorkload">IT Team Workload</h3>
+        <table class="table">
+          <thead>
+            <tr>
+              <th data-i18n="thName">Name</th>
+              <th data-i18n="thSpecialty">Specialty</th>
+              <th data-i18n="thActive">Active Tickets</th>
+              <th data-i18n="thResolved">Resolved</th>
+            </tr>
+          </thead>
+          <tbody id="workload-table"></tbody>
+        </table>
+      </div>
+
+      <div class="card" style="margin-top: 24px;">
+        <h3 style="margin-bottom: 16px;" data-i18n="allTickets">All Tickets</h3>
+        <div class="filter-bar">
+          <select id="admin-filter-category" onchange="loadAdminTickets()">
+            <option value="" data-i18n="filterCategory">All Categories</option>
+            <option value="Devices">Devices</option>
+            <option value="Personal Device">Personal Device</option>
+            <option value="Medical Device">Medical Device</option>
+            <option value="Software">Software</option>
+            <option value="Access">Access</option>
+            <option value="Maintenance & Repairs">Maintenance & Repairs</option>
+          </select>
+          <select id="admin-filter-status" onchange="loadAdminTickets()">
+            <option value="" data-i18n="filterStatus">All Statuses</option>
+            <option value="Open">Open</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </div>
+        <div class="ticket-list" id="admin-tickets-list"></div>
+      </div>
+    </div>
+
+    <div id="auth-page" class="page">
+      <div class="auth-form">
+        <div class="logo">IT Support Portal</div>
+        <div class="card">
+          <h2 id="auth-title">Login</h2>
+          <div id="auth-alert"></div>
+          <form id="auth-form" onsubmit="handleAuth(event)">
+            <div id="register-fields" style="display: none;">
+              <div class="form-group">
+                <label class="form-label">Full Name</label>
+                <input type="text" class="form-input" id="auth-name">
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-input" id="auth-email" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input type="password" class="form-input" id="auth-password" required>
+            </div>
+            <div id="dept-field" class="form-group" style="display: none;">
+              <label class="form-label">Department</label>
+              <input type="text" class="form-input" id="auth-dept">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 16px;" id="auth-btn">Login</button>
+          </form>
+          <p style="margin-top: 20px; color: var(--text-light);">
+            <a href="#" onclick="toggleAuth()" id="auth-toggle">Don't have an account? Register</a>
+          </p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

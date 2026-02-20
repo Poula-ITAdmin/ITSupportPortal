@@ -37,35 +37,47 @@ ITSupportPortal/
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Python / Flask)
+
+This project is consolidated to use the Python/Flask backend in `backend/app.py`. A legacy Node/Express implementation existed in `backend/src/`, but it has been deprecated to avoid conflicts — please use the Flask server.
 
 ### Prerequisites
 - Python 3.8+
 
-### Installation
+### Installation (Flask)
 
 ```bash
-# Navigate to project
+# Navigate to project backend
 cd ITSupportPortal/backend
 
 # Create virtual environment
 python3 -m venv env
 
 # Activate environment
-source env/bin/activate  # Linux/Mac
-# OR: env\Scripts\activate  # Windows
+source env/bin/activate
 
 # Install dependencies
-pip install flask flask-cors pyjwt bcrypt
+pip install -r requirements.txt
 ```
 
-### Run the Server
+### Configuration
+Copy the example env file and edit as needed:
+
+```bash
+cp .env.example .env
+# or use .env.python.example if present
+```
+
+### Run the Flask Server
 
 ```bash
 python app.py
 ```
 
 The application will be available at: **http://localhost:3000**
+
+### Node backend (alternative)
+The repository also contains a Node/Express implementation in `backend/src/`. If you prefer Node you can use it instead, but to avoid conflicts run only one backend at a time (they share the same SQLite DB and ports).
 
 ---
 

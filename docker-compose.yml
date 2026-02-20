@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: itsupport_db
+    environment:
+      POSTGRES_USER: itsupport
+      POSTGRES_PASSWORD: itsupport
+      POSTGRES_DB: itsupport_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - itsupport_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U itsupport"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache and Message Queue
+  redis:
+    image: redis:7-alpine
+    container_name: itsupport_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - itsupport_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Flask Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: itsupport_backend
+    environment:
+      FLASK_ENV: production
+      DATABASE_URL: postgresql://itsupport:itsupport@postgres:5432/itsupport_db
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: your-secret-key-here
+      LDAP_SERVER: ldap://your-domain-controller.com
+      LDAP_PORT: 389
+      LDAP_BASE_DN: dc=company,dc=com
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - itsupport_network
+    volumes:
+      - ./backend:/app
+      - ./data/uploads:/app/data/uploads
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: itsupport_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+    networks:
+      - itsupport_network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  itsupport_network:
+    driver: bridge

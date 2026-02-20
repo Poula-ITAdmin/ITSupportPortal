@@ -10,6 +10,79 @@ const SUB_DEPARTMENTS_AR = {
   'Mission': ['الإدارة', 'المالية', 'الموارد البشرية', 'البرامج', 'التواصل المجتمعي', 'الصحة المجتمعية', 'التدريب', 'اللوجستيات', 'المشتريات', 'المتابعة والتقييم']
 };
 
+const CATEGORY_FIELDS = {
+  'Devices': [
+    { key: 'device_type', type: 'select', label: 'Device Type', options: ['Laptop','Desktop','Printer','Monitor','Network','Other'] },
+    { key: 'asset_number', type: 'text', label: 'Asset Number', placeholder: 'e.g., LAP-001' },
+    { key: 'device_working', type: 'select', label: 'Is the device working?', options: ['','Yes','No'] }
+  ],
+  'Personal Device': [
+    { key: 'device_type', type: 'select', label: 'Device Type', options: ['Personal Laptop','Personal Desktop','Mobile Phone','Tablet','Other'] },
+    { key: 'device_owner', type: 'text', label: 'Device Owner', placeholder: 'Employee name' },
+    { key: 'personal_issue', type: 'textarea', label: 'Issue Description' }
+  ],
+  'Medical Device': [
+    { key: 'medical_device_name', type: 'text', label: 'Device Name', placeholder: 'e.g., MRI Scanner' },
+    { key: 'medical_device_id', type: 'text', label: 'Device ID / Serial Number' },
+    { key: 'medical_department', type: 'text', label: 'Department', placeholder: 'e.g., ICU' },
+    { key: 'medical_urgency', type: 'select', label: 'Urgency Level', options: ['','Critical','High','Medium','Low'] },
+    { key: 'medical_issue', type: 'textarea', label: 'Issue Description' }
+  ],
+  'Software': [
+    { key: 'software_name', type: 'text', label: 'Software Name' },
+    { key: 'error_message', type: 'text', label: 'Error Message (if any)' }
+  ],
+  'Access': [
+    { key: 'application_access', type: 'text', label: 'Application/System' },
+    { key: 'current_role', type: 'text', label: 'Current Role' },
+    { key: 'required_permissions', type: 'text', label: 'Required Permissions' }
+  ],
+  'Maintenance & Repairs': [
+    { key: 'equipment_name', type: 'text', label: 'Equipment/System Name' },
+    { key: 'equipment_location', type: 'text', label: 'Location' },
+    { key: 'maintenance_type', type: 'select', label: 'Maintenance Type', options: ['','Preventive','Corrective','Inspection','Installation','Upgrade'] },
+    { key: 'scheduled_date', type: 'date', label: 'Scheduled Date (if applicable)' },
+    { key: 'maintenance_description', type: 'textarea', label: 'Issue Description' }
+  ]
+};
+
+function fieldId(category, key) {
+  const categoryKey = category.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+  return `${categoryKey}_${key}`;
+}
+
+function renderCategoryFields(category) {
+  const container = document.getElementById('category-dynamic-container');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!category || !CATEGORY_FIELDS[category]) return;
+
+  const fields = CATEGORY_FIELDS[category];
+  const categoryKey = category.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+
+  fields.forEach(f => {
+    const id = fieldId(category, f.key);
+    let html = '';
+    if (f.type === 'select') {
+      html += `<div class="form-group"><label class="form-label">${f.label}</label>`;
+      html += `<select class="form-select" id="${id}">`;
+      (f.options || []).forEach(opt => {
+        const val = opt === '' ? '' : opt;
+        html += `<option value="${val}">${opt || ''}</option>`;
+      });
+      html += `</select></div>`;
+    } else if (f.type === 'textarea') {
+      html += `<div class="form-group"><label class="form-label">${f.label}</label>`;
+      html += `<textarea class="form-textarea" id="${id}" placeholder="${f.placeholder || ''}"></textarea></div>`;
+    } else {
+      html += `<div class="form-group"><label class="form-label">${f.label}</label>`;
+      html += `<input type="${f.type || 'text'}" class="form-input" id="${id}" placeholder="${f.placeholder || ''}"></div>`;
+    }
+
+    container.insertAdjacentHTML('beforeend', html);
+  });
+}
+
 let currentLanguage = localStorage.getItem('language') || 'en';
 
 const translations = {
@@ -352,7 +425,14 @@ async function api(endpoint, options = {}) {
     headers
   });
   
-  const data = await response.json();
+  const text = await response.text();
+  
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    throw new Error(`Server error: ${text.substring(0, 100)}`);
+  }
   
   if (!response.ok) {
     throw new Error(data.error || 'Something went wrong');
@@ -375,8 +455,16 @@ function navigate(page) {
     }
   }
   
-  if ((page === 'dashboard' || page === 'my-tickets') && !userObj) {
+  if ((page === 'dashboard' || page === 'my-tickets' || page === 'admin-users' || page === 'admin-tickets' || page === 'chat' || page === 'calendar') && !userObj) {
     page = 'auth';
+  }
+  
+  if (page === 'admin' && userObj?.role === 'admin') {
+    page = 'admin';
+  }
+  
+  if ((page === 'admin-users' || page === 'admin-tickets') && userObj?.role !== 'admin') {
+    page = 'admin';
   }
   
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -386,6 +474,14 @@ function navigate(page) {
   if (page === 'my-tickets') loadMyTickets();
   if (page === 'dashboard') loadDashboard();
   if (page === 'admin') loadAdmin();
+  if (page === 'admin-users') loadAdminUsers();
+  if (page === 'admin-tickets') loadAdminTickets();
+  if (page === 'chat') {
+    loadChatChannels();
+  }
+  if (page === 'calendar') {
+    loadCalendar();
+  }
   
   applyLanguage();
   window.scrollTo(0, 0);
@@ -394,23 +490,7 @@ function navigate(page) {
 function selectCategory(category) {
   document.getElementById('category').value = category;
   document.getElementById('form-title').textContent = `${category} Issue`;
-  
-  document.querySelectorAll('.dynamic-fields').forEach(f => f.classList.remove('active'));
-  
-  if (category === 'Devices') {
-    document.getElementById('devices-fields').classList.add('active');
-  } else if (category === 'Personal Device') {
-    document.getElementById('personal-device-fields').classList.add('active');
-  } else if (category === 'Medical Device') {
-    document.getElementById('medical-device-fields').classList.add('active');
-  } else if (category === 'Software') {
-    document.getElementById('software-fields').classList.add('active');
-  } else if (category === 'Access') {
-    document.getElementById('access-fields').classList.add('active');
-  } else if (category === 'Maintenance & Repairs') {
-    document.getElementById('maintenance-fields').classList.add('active');
-  }
-  
+  renderCategoryFields(category);
   navigate('ticket-form');
 }
 
@@ -427,33 +507,28 @@ async function submitTicket(e) {
     phone: document.getElementById('phone').value
   };
   
-  if (formData.category === 'Devices') {
-    formData.device_type = document.getElementById('device_type').value;
-    formData.asset_number = document.getElementById('asset_number').value;
-    formData.device_working = document.getElementById('device_working').value;
-  } else if (formData.category === 'Personal Device') {
-    formData.device_type = document.getElementById('device_type').value;
-    formData.device_owner = document.getElementById('device_owner').value;
-    formData.description = document.getElementById('personal_issue').value || formData.description;
-  } else if (formData.category === 'Medical Device') {
-    formData.medical_device_name = document.getElementById('medical_device_name').value;
-    formData.medical_device_id = document.getElementById('medical_device_id').value;
-    formData.medical_department = document.getElementById('medical_department').value;
-    formData.urgency = document.getElementById('medical_urgency').value || formData.urgency;
-    formData.description = document.getElementById('medical_issue').value || formData.description;
-  } else if (formData.category === 'Software') {
-    formData.software_name = document.getElementById('software_name').value;
-    formData.error_message = document.getElementById('error_message').value;
-  } else if (formData.category === 'Access') {
-    formData.application_access = document.getElementById('application_access').value;
-    formData.current_role = document.getElementById('current_role').value;
-    formData.required_permissions = document.getElementById('required_permissions').value;
-  } else if (formData.category === 'Maintenance & Repairs') {
-    formData.equipment_name = document.getElementById('equipment_name').value;
-    formData.equipment_location = document.getElementById('equipment_location').value;
-    formData.maintenance_type = document.getElementById('maintenance_type').value;
-    formData.scheduled_date = document.getElementById('scheduled_date').value;
-    formData.description = document.getElementById('maintenance_description').value || formData.description;
+  // collect category-specific fields from dynamically rendered inputs
+  const category = formData.category;
+  if (category && CATEGORY_FIELDS[category]) {
+    CATEGORY_FIELDS[category].forEach(f => {
+      const id = fieldId(category, f.key);
+      const el = document.getElementById(id);
+      if (!el) return;
+
+      const val = el.value;
+      // map textarea personal_issue to description if empty
+      if (f.key === 'personal_issue' || f.key === 'medical_issue' || f.key === 'maintenance_description') {
+        if (val) formData.description = val;
+      }
+
+      // for urgency overrides
+      if (f.key === 'medical_urgency' && val) {
+        formData.urgency = val;
+      }
+
+      // assign value to payload using the field key
+      formData[f.key] = val;
+    });
   }
   
   try {
@@ -689,23 +764,27 @@ async function loadAdmin() {
     
     loadAdminTickets();
   } catch (error) {
-    console.error(error);
+    console.error('loadAdmin error:', error);
+    alert('Error loading admin: ' + error.message);
   }
 }
 
 async function loadAdminTickets() {
   try {
+    const container = document.getElementById('admin-tickets-list');
+    if (!container) return;
+    
     const tickets = await api('/tickets');
     const members = await api('/users/it-members');
     
-    const categoryFilter = document.getElementById('admin-filter-category')?.value || '';
-    const statusFilter = document.getElementById('admin-filter-status')?.value || '';
+    const categoryFilterEl = document.getElementById('admin-filter-category');
+    const statusFilterEl = document.getElementById('admin-filter-status');
+    const categoryFilter = categoryFilterEl?.value || '';
+    const statusFilter = statusFilterEl?.value || '';
     
     let filtered = tickets;
     if (categoryFilter) filtered = filtered.filter(t => t.category === categoryFilter);
     if (statusFilter) filtered = filtered.filter(t => t.status === statusFilter);
-    
-    const container = document.getElementById('admin-tickets-list');
     
     if (filtered.length === 0) {
       container.innerHTML = '<div class="empty-state"><h3 data-i18n="noTicketsFound">No tickets found</h3></div>';
@@ -718,7 +797,7 @@ async function loadAdminTickets() {
         <div class="ticket-info">
           <h4>${t.title}</h4>
           <div class="ticket-meta">
-            <span class="badge badge-${t.category.toLowerCase().replace(' ', '-')}">${t.category}</span>
+            <span class="badge badge-${t.category ? t.category.toLowerCase().replace(' ', '-') : 'low'}">${t.category || 'N/A'}</span>
             <span>${t.user_name || 'Unknown'} - ${t.sub_department || t.department || 'N/A'}</span>
           </div>
         </div>
@@ -727,12 +806,16 @@ async function loadAdminTickets() {
             <option value="">${currentLanguage === 'ar' ? 'إعادة التعيين' : 'Reassign'}</option>
             ${members.map(m => `<option value="${m.id}" ${t.assigned_to === m.id ? 'selected' : ''}>${m.name} (${m.category})</option>`).join('')}
           </select>
-          <span class="badge badge-${t.status.toLowerCase().replace(' ', '-')}">${t.status}</span>
+          <span class="badge badge-${t.status ? t.status.toLowerCase().replace(' ', '-') : 'low'}">${t.status || 'N/A'}</span>
         </div>
       </div>
     `).join('');
   } catch (error) {
-    console.error(error);
+    console.error('loadAdminTickets error:', error);
+    const container = document.getElementById('admin-tickets-list');
+    if (container) {
+      container.innerHTML = `<div class="empty-state"><h3>Error: ${error.message}</h3></div>`;
+    }
   }
 }
 
@@ -782,10 +865,17 @@ function toggleAuth() {
 async function handleAuth(e) {
   e.preventDefault();
   
-  const email = document.getElementById('auth-email').value;
-  const password = document.getElementById('auth-password').value;
-  const name = document.getElementById('auth-name').value;
-  const department = document.getElementById('auth-dept').value;
+  const emailEl = document.getElementById('auth-email');
+  const passwordEl = document.getElementById('auth-password');
+  const nameEl = document.getElementById('auth-name');
+  const deptEl = document.getElementById('auth-dept');
+  
+  if (!emailEl || !passwordEl) return;
+  
+  const email = emailEl.value;
+  const password = passwordEl.value;
+  const name = nameEl ? nameEl.value : '';
+  const department = deptEl ? deptEl.value : '';
   
   try {
     const endpoint = isLoginMode ? '/auth/login' : '/auth/register';
@@ -825,21 +915,775 @@ function updateUI() {
   const isAdmin = userObj?.role === 'admin';
   const isITStaff = userObj?.role === 'it_staff';
   
-  document.getElementById('login-link').style.display = isLoggedIn ? 'none' : 'inline-flex';
-  document.getElementById('logout-link').style.display = isLoggedIn ? 'inline-flex' : 'none';
-  document.getElementById('my-tickets-link').style.display = isLoggedIn ? 'inline-flex' : 'none';
-  document.getElementById('dashboard-link').style.display = isLoggedIn ? 'inline-flex' : 'none';
-  document.getElementById('admin-link').style.display = isAdmin ? 'inline-flex' : 'none';
+  const loginLink = document.getElementById('login-link');
+  const userDropdown = document.getElementById('user-dropdown');
+  
+  if (loginLink) loginLink.style.display = isLoggedIn ? 'none' : 'inline-flex';
+  if (userDropdown) userDropdown.style.display = isLoggedIn ? 'inline-block' : 'none';
   
   if (userObj) {
-    document.getElementById('user-name').textContent = userObj.name;
-    document.getElementById('user-name-input').value = userObj.name;
-    document.getElementById('email').value = userObj.email;
-    if (userObj.department) document.getElementById('department').value = userObj.department;
+    const userNameEl = document.getElementById('user-name');
+    const userNameInput = document.getElementById('user-name-input');
+    const emailEl = document.getElementById('email');
+    const deptEl = document.getElementById('main-department');
+    const dropdownUserInfo = document.getElementById('dropdown-user-info');
+    const navMyTickets = document.getElementById('nav-my-tickets');
+    const navDashboard = document.getElementById('nav-dashboard');
+    const adminMenuItems = document.getElementById('admin-menu-items');
+    
+    if (userNameEl) userNameEl.textContent = userObj.name;
+    if (userNameInput) userNameInput.value = userObj.name;
+    if (emailEl) emailEl.value = userObj.email;
+    if (deptEl && userObj.department) deptEl.value = userObj.department;
+    
+    if (dropdownUserInfo) {
+      const roleLabel = userObj.role === 'admin' ? 'Administrator' : 
+                        userObj.role === 'it_staff' ? 'IT Staff' : 'Employee';
+      dropdownUserInfo.innerHTML = `<strong>${userObj.name}</strong><br><small>${roleLabel}</small>`;
+    }
+    
+    if (navMyTickets) navMyTickets.style.display = 'inline-block';
+    const navChat = document.getElementById('nav-chat');
+    if (navChat) navChat.style.display = 'inline-block';
+    const navCalendar = document.getElementById('nav-calendar');
+    if (navCalendar) navCalendar.style.display = 'inline-block';
+    if (navDashboard) navDashboard.style.display = (isITStaff || isAdmin) ? 'inline-block' : 'none';
+    if (adminMenuItems) adminMenuItems.style.display = isAdmin ? 'block' : 'none';
+  } else {
+    const userNameEl = document.getElementById('user-name');
+    if (userNameEl) userNameEl.textContent = '';
   }
 }
+
+function toggleUserDropdown() {
+  const menu = document.getElementById('user-menu');
+  if (menu) {
+    menu.classList.toggle('show');
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const userDropdown = document.getElementById('user-dropdown');
+  const menu = document.getElementById('user-menu');
+  if (userDropdown && menu && !userDropdown.contains(e.target)) {
+    menu.classList.remove('show');
+  }
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   updateUI();
   applyLanguage();
+  
+  const hash = window.location.hash;
+  if (hash.includes('reset-password')) {
+    const params = new URLSearchParams(hash.split('?')[1]);
+    const token = params.get('token');
+    if (token) {
+      localStorage.setItem('reset_token', token);
+      navigate('reset-password');
+    }
+  }
 });
+
+function showForgotPassword() {
+  navigate('forgot-password-page');
+}
+
+async function handleForgotPassword(e) {
+  e.preventDefault();
+  const email = document.getElementById('fp-email').value;
+  const alertEl = document.getElementById('fp-alert');
+  
+  try {
+    const result = await api('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) });
+    alertEl.innerHTML = `<div class="alert alert-success">${result.message}</div>`;
+  } catch (error) {
+    alertEl.innerHTML = `<div class="alert alert-error">${error.message}</div>`;
+  }
+}
+
+async function handleResetPassword(e) {
+  e.preventDefault();
+  const password = document.getElementById('rp-password').value;
+  const confirm = document.getElementById('rp-confirm').value;
+  const alertEl = document.getElementById('rp-alert');
+  const token = localStorage.getItem('reset_token');
+  
+  if (password !== confirm) {
+    alertEl.innerHTML = `<div class="alert alert-error">Passwords do not match</div>`;
+    return;
+  }
+  
+  try {
+    await api('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, new_password: password }) });
+    alert('Password reset successfully! Please login.');
+    localStorage.removeItem('reset_token');
+    navigate('auth');
+  } catch (error) {
+    alertEl.innerHTML = `<div class="alert alert-error">${error.message}</div>`;
+  }
+}
+
+function showAddUserForm() {
+  document.getElementById('add-user-form').style.display = 'block';
+}
+
+function hideAddUserForm() {
+  document.getElementById('add-user-form').style.display = 'none';
+  document.getElementById('user-form').reset();
+}
+
+function toggleCategoryField() {
+  const role = document.getElementById('new-user-role').value;
+  const categoryField = document.getElementById('category-field');
+  categoryField.style.display = role === 'it_staff' ? 'block' : 'none';
+}
+
+async function loadAdminUsers() {
+  try {
+    const users = await api('/admin/users');
+    const members = await api('/users/it-members');
+    
+    const container = document.getElementById('users-list');
+    
+    container.innerHTML = `
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Department</th>
+            <th>Category</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${users.map(u => {
+            const member = members.find(m => m.id === u.id);
+            return `
+              <tr>
+                <td>${u.name}</td>
+                <td>${u.email}</td>
+                <td><span class="badge badge-${u.role === 'admin' ? 'high' : u.role === 'it_staff' ? 'medium' : 'low'}">${u.role}</span></td>
+                <td>${u.department || '-'}</td>
+                <td>${member?.category || '-'}</td>
+                <td>
+                  <button class="btn btn-sm" onclick="editUser('${u.id}')">Edit</button>
+                  <button class="btn btn-sm btn-danger" onclick="deleteUser('${u.id}')">Delete</button>
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (error) {
+    console.error('loadAdminUsers error:', error);
+  }
+}
+
+async function handleUserSubmit(e) {
+  e.preventDefault();
+  
+  const userData = {
+    name: document.getElementById('new-user-name').value,
+    email: document.getElementById('new-user-email').value,
+    password: document.getElementById('new-user-password').value,
+    role: document.getElementById('new-user-role').value,
+    department: document.getElementById('new-user-dept').value
+  };
+  
+  if (userData.role === 'it_staff') {
+    userData.category = document.getElementById('new-user-category').value;
+  }
+  
+  try {
+    await api('/admin/users', { method: 'POST', body: JSON.stringify(userData) });
+    alert('User created successfully!');
+    hideAddUserForm();
+    loadAdminUsers();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function deleteUser(userId) {
+  if (!confirm('Are you sure you want to delete this user?')) return;
+  
+  try {
+    await api(`/admin/users/${userId}`, { method: 'DELETE' });
+    loadAdminUsers();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+let allUsersData = [];
+let allMembersData = [];
+
+async function editUser(userId) {
+  try {
+    const users = await api('/admin/users');
+    const members = await api('/users/it-members');
+    allUsersData = users;
+    allMembersData = members;
+    
+    const user = users.find(u => u.id === userId);
+    const member = members.find(m => m.id === userId);
+    
+    if (!user) {
+      alert('User not found');
+      return;
+    }
+    
+    document.getElementById('edit-user-id').value = userId;
+    document.getElementById('edit-user-name').value = user.name;
+    document.getElementById('edit-user-email').value = user.email;
+    document.getElementById('edit-user-role').value = user.role;
+    document.getElementById('edit-user-dept').value = user.department || '';
+    document.getElementById('edit-user-password').value = '';
+    
+    toggleEditCategoryField();
+    
+    if (member) {
+      document.getElementById('edit-user-category').value = member.category;
+    }
+    
+    document.getElementById('edit-user-form').style.display = 'block';
+    document.getElementById('add-user-form').style.display = 'none';
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+function hideEditUserForm() {
+  document.getElementById('edit-user-form').style.display = 'none';
+  document.getElementById('edit-user-form-submit').reset();
+}
+
+function toggleEditCategoryField() {
+  const role = document.getElementById('edit-user-role').value;
+  const categoryField = document.getElementById('edit-category-field');
+  categoryField.style.display = role === 'it_staff' ? 'block' : 'none';
+}
+
+async function handleUserEdit(e) {
+  e.preventDefault();
+  
+  const userId = document.getElementById('edit-user-id').value;
+  const userData = {
+    name: document.getElementById('edit-user-name').value,
+    email: document.getElementById('edit-user-email').value,
+    role: document.getElementById('edit-user-role').value,
+    department: document.getElementById('edit-user-dept').value
+  };
+  
+  const password = document.getElementById('edit-user-password').value;
+  if (password) {
+    userData.password = password;
+  }
+  
+  if (userData.role === 'it_staff') {
+    userData.category = document.getElementById('edit-user-category').value;
+  }
+  
+  try {
+    await api(`/admin/users/${userId}`, { 
+      method: 'PUT', 
+      body: JSON.stringify(userData) 
+    });
+    alert('User updated successfully!');
+    hideEditUserForm();
+    loadAdminUsers();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+let chatChannels = [];
+let currentChatChannel = null;
+let chatPollInterval = null;
+
+async function loadChatChannels() {
+  try {
+    chatChannels = await api('/chat/channels');
+    renderChatChannels();
+  } catch (error) {
+    console.error('Error loading chat channels:', error);
+  }
+}
+
+function renderChatChannels() {
+  const container = document.getElementById('chat-channels-list');
+  if (!container) return;
+  
+  const generalChannels = chatChannels.filter(c => c.channel_type === 'general');
+  const teamChannels = chatChannels.filter(c => c.channel_type === 'team');
+  const deptChannels = chatChannels.filter(c => c.channel_type === 'department');
+  
+  let html = '';
+  
+  if (generalChannels.length) {
+    html += `<div class="chat-section-title">General</div>`;
+    generalChannels.forEach(ch => {
+      html += renderChannelItem(ch);
+    });
+  }
+  
+  if (teamChannels.length) {
+    html += `<div class="chat-section-title">IT Teams</div>`;
+    teamChannels.forEach(ch => {
+      html += renderChannelItem(ch);
+    });
+  }
+  
+  if (deptChannels.length) {
+    html += `<div class="chat-section-title">Departments</div>`;
+    deptChannels.forEach(ch => {
+      html += renderChannelItem(ch);
+    });
+  }
+  
+  container.innerHTML = html;
+}
+
+function renderChannelItem(ch) {
+  const active = currentChatChannel === ch.id ? 'active' : '';
+  const unread = ch.unread_count > 0 ? `<span class="unread-badge">${ch.unread_count}</span>` : '';
+  return `<div class="chat-channel-item ${active}" onclick="selectChatChannel('${ch.id}')">
+    <span>${ch.name}</span>
+    ${unread}
+  </div>`;
+}
+
+async function selectChatChannel(channelId) {
+  currentChatChannel = channelId;
+  const channel = chatChannels.find(c => c.id === channelId);
+  
+  document.getElementById('chat-channel-name').textContent = channel ? channel.name : 'Channel';
+  renderChatChannels();
+  await loadChatMessages(channelId);
+  
+  if (chatPollInterval) clearInterval(chatPollInterval);
+  chatPollInterval = setInterval(() => {
+    if (currentChatChannel) loadChatMessages(currentChatChannel, true);
+  }, 5000);
+}
+
+async function loadChatMessages(channelId, silent = false) {
+  try {
+    const messages = await api(`/chat/channels/${channelId}/messages`);
+    renderChatMessages(messages);
+    if (!silent) loadChatChannels();
+  } catch (error) {
+    console.error('Error loading messages:', error);
+  }
+}
+
+function renderChatMessages(messages) {
+  const container = document.getElementById('chat-messages');
+  if (!container) return;
+  
+  if (!messages.length) {
+    container.innerHTML = '<div class="chat-empty">No messages yet. Start the conversation!</div>';
+    return;
+  }
+  
+  const currentUserId = JSON.parse(localStorage.getItem('user') || '{}').id;
+  
+  container.innerHTML = messages.map(msg => {
+    const isOwn = msg.user_id === currentUserId;
+    const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const roleBadge = msg.user_role === 'admin' ? ' <span style="background:#ef4444;color:white;padding:1px 4px;border-radius:3px;font-size:9px;">ADMIN</span>' : 
+                     msg.user_role === 'it_staff' ? ' <span style="background:#2563eb;color:white;padding:1px 4px;border-radius:3px;font-size:9px;">IT</span>' : '';
+    
+    return `<div class="chat-message ${isOwn ? 'own' : 'other'}">
+      <div class="chat-message-header">
+        <span class="chat-message-name">${msg.user_name}${roleBadge}</span>
+        <span class="chat-message-time">${time}</span>
+      </div>
+      <div class="chat-message-text">${escapeHtml(msg.message)}</div>
+    </div>`;
+  }).join('');
+  
+  container.scrollTop = container.scrollHeight;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+async function sendChatMessage() {
+  if (!currentChatChannel) return;
+  
+  const input = document.getElementById('chat-message-input');
+  const message = input.value.trim();
+  if (!message) return;
+  
+  try {
+    await api(`/chat/channels/${currentChatChannel}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ message })
+    });
+    input.value = '';
+    await loadChatMessages(currentChatChannel);
+    await loadChatChannels();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+function handleChatKeyPress(e) {
+  if (e.key === 'Enter') {
+    sendChatMessage();
+  }
+}
+
+let currentDate = new Date();
+let calendarView = 'month';
+let calendarEvents = [];
+let selectedCategories = ['meeting', 'maintenance', 'training', 'deadline', 'vacation', 'ticket', 'other'];
+let calendarCategories = [];
+
+const categoryColors = {
+  'meeting': '#2563eb',
+  'maintenance': '#f59e0b',
+  'training': '#10b981',
+  'deadline': '#ef4444',
+  'vacation': '#8b5cf6',
+  'ticket': '#06b6d4',
+  'other': '#64748b'
+};
+
+async function loadCalendar() {
+  try {
+    const events = await api('/calendar/events');
+    calendarEvents = events;
+    calendarCategories = await api('/calendar/categories');
+    renderCalendar();
+    renderCalendarCategories();
+    renderUpcomingEvents();
+  } catch (error) {
+    console.error('Error loading calendar:', error);
+  }
+}
+
+function renderCalendar() {
+  const title = document.getElementById('calendar-title');
+  const grid = document.getElementById('calendar-grid');
+  
+  if (calendarView === 'month') {
+    renderMonthView(title, grid);
+  } else if (calendarView === 'week') {
+    renderWeekView(title, grid);
+  } else {
+    renderDayView(title, grid);
+  }
+}
+
+function renderMonthView(title, grid) {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  
+  title.textContent = new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+  const startDate = new Date(firstDay);
+  startDate.setDate(startDate.getDate() - firstDay.getDay());
+  
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  
+  let html = dayNames.map(d => `<div class="calendar-day-header">${d}</div>`).join('');
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  for (let i = 0; i < 42; i++) {
+    const date = new Date(startDate);
+    date.setDate(startDate.getDate() + i);
+    
+    const dateStr = date.toISOString().split('T')[0];
+    const isOtherMonth = date.getMonth() !== month;
+    const isToday = date.getTime() === today.getTime();
+    
+    const dayEvents = calendarEvents.filter(e => {
+      const eventDate = new Date(e.start_time).toISOString().split('T')[0];
+      return eventDate === dateStr && selectedCategories.includes(e.category);
+    }).slice(0, 3);
+    
+    const moreCount = calendarEvents.filter(e => {
+      const eventDate = new Date(e.start_time).toISOString().split('T')[0];
+      return eventDate === dateStr && selectedCategories.includes(e.category);
+    }).length - 3;
+    
+    let eventsHtml = dayEvents.map(e => `
+      <div class="calendar-event" style="background: ${e.color || categoryColors[e.category] || '#2563eb'}" 
+           onclick="openEvent('${e.id}'); event.stopPropagation();">
+        ${e.title}
+      </div>
+    `).join('');
+    
+    if (moreCount > 0) {
+      eventsHtml += `<div class="calendar-more">+${moreCount} more</div>`;
+    }
+    
+    html += `<div class="calendar-day ${isOtherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''}" 
+                  onclick="openNewEvent('${dateStr}')">
+      <div class="calendar-day-number">${date.getDate()}</div>
+      ${eventsHtml}
+    </div>`;
+  }
+  
+  grid.innerHTML = html;
+}
+
+function renderWeekView(title, grid) {
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const day = currentDate.getDate();
+  const startOfWeek = new Date(year, month, day - currentDate.getDay());
+  
+  title.textContent = `Week of ${startOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+  
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  let headerHtml = dayNames.map((d, i) => {
+    const date = new Date(startOfWeek);
+    date.setDate(startOfWeek.getDate() + i);
+    const isToday = date.getTime() === today.getTime();
+    return `<div class="week-header-day ${isToday ? 'today' : ''}">
+      <div>${d}</div>
+      <div style="font-size: 18px;">${date.getDate()}</div>
+    </div>`;
+  }).join('');
+  
+  let bodyHtml = '';
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(startOfWeek);
+    date.setDate(startOfWeek.getDate() + i);
+    const dateStr = date.toISOString().split('T')[0];
+    
+    const dayEvents = calendarEvents.filter(e => {
+      const eventDate = new Date(e.start_time).toISOString().split('T')[0];
+      return eventDate === dateStr && selectedCategories.includes(e.category);
+    });
+    
+    let eventsHtml = dayEvents.map(e => `
+      <div class="week-event" style="background: ${e.color || categoryColors[e.category] || '#2563eb'}"
+           onclick="openEvent('${e.id}'); event.stopPropagation();">
+        <strong>${e.title}</strong><br>
+        ${formatEventTime(e)}
+      </div>
+    `).join('');
+    
+    bodyHtml += `<div class="week-column">${eventsHtml}</div>`;
+  }
+  
+  grid.className = 'week-view';
+  grid.innerHTML = `<div class="week-header">${headerHtml}</div><div class="week-body">${bodyHtml}</div>`;
+}
+
+function renderDayView(title, grid) {
+  const dateStr = currentDate.toISOString().split('T')[0];
+  title.textContent = currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  
+  let html = '';
+  for (let hour = 0; hour < 24; hour++) {
+    const timeStr = `${hour.toString().padStart(2, '0')}:00`;
+    const hourDate = new Date(currentDate);
+    hourDate.setHours(hour, 0, 0, 0);
+    const hourStr = hourDate.toISOString().slice(0, 13);
+    
+    const hourEvents = calendarEvents.filter(e => {
+      const eventHour = new Date(e.start_time).getHours();
+      return eventHour === hour && selectedCategories.includes(e.category);
+    });
+    
+    let eventsHtml = hourEvents.map(e => `
+      <div class="week-event" style="background: ${e.color || categoryColors[e.category] || '#2563eb'}"
+           onclick="openEvent('${e.id}'); event.stopPropagation();">
+        <strong>${e.title}</strong> - ${formatEventTime(e)}
+      </div>
+    `).join('');
+    
+    html += `<div class="time-slot">
+      <div class="time-label">${timeStr}</div>
+      <div class="time-events" onclick="openNewEvent('${dateStr}T${timeStr}:00')">${eventsHtml}</div>
+    </div>`;
+  }
+  
+  grid.className = 'day-view';
+  grid.innerHTML = `<div class="day-schedule">${html}</div>`;
+}
+
+function formatEventTime(event) {
+  const start = new Date(event.start_time);
+  const end = event.end_time ? new Date(event.end_time) : null;
+  
+  if (event.all_day) return 'All Day';
+  
+  const timeStr = start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  if (!end) return timeStr;
+  
+  const endStr = end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return `${timeStr} - ${endStr}`;
+}
+
+function renderCalendarCategories() {
+  const container = document.getElementById('calendar-categories');
+  if (!container) return;
+  
+  container.innerHTML = calendarCategories.map(cat => `
+    <label class="calendar-category-item">
+      <input type="checkbox" value="${cat.id}" ${selectedCategories.includes(cat.id) ? 'checked' : ''} 
+             onchange="toggleCategory('${cat.id}')">
+      <span class="calendar-category-dot" style="background: ${cat.color}"></span>
+      <span>${cat.name}</span>
+    </label>
+  `).join('');
+}
+
+function renderUpcomingEvents() {
+  const container = document.getElementById('calendar-upcoming');
+  if (!container) return;
+  
+  const now = new Date();
+  const upcoming = calendarEvents
+    .filter(e => new Date(e.start_time) >= now && selectedCategories.includes(e.category))
+    .sort((a, b) => new Date(a.start_time) - new Date(b.start_time))
+    .slice(0, 5);
+  
+  if (!upcoming.length) {
+    container.innerHTML = '<p style="color: var(--text-light); font-size: 12px;">No upcoming events</p>';
+    return;
+  }
+  
+  container.innerHTML = upcoming.map(e => {
+    const date = new Date(e.start_time);
+    return `<div class="upcoming-event" style="background: ${e.color || categoryColors[e.category] || '#2563eb'}"
+                   onclick="openEvent('${e.id}')">
+      <div class="upcoming-event-time">${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div>
+      <div>${e.title}</div>
+    </div>`;
+  }).join('');
+}
+
+function changeMonth(delta) {
+  currentDate.setMonth(currentDate.getMonth() + delta);
+  renderCalendar();
+}
+
+function goToToday() {
+  currentDate = new Date();
+  renderCalendar();
+}
+
+function setCalendarView(view) {
+  calendarView = view;
+  document.querySelectorAll('.calendar-views .btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById(`view-${view}`).classList.add('active');
+  renderCalendar();
+}
+
+function toggleCategory(cat) {
+  if (selectedCategories.includes(cat)) {
+    selectedCategories = selectedCategories.filter(c => c !== cat);
+  } else {
+    selectedCategories.push(cat);
+  }
+  renderCalendar();
+  renderUpcomingEvents();
+}
+
+function openNewEvent(dateStr) {
+  document.getElementById('event-modal').classList.add('show');
+  document.getElementById('event-modal-title').textContent = 'New Event';
+  document.getElementById('event-form').reset();
+  document.getElementById('event-id').value = '';
+  document.getElementById('delete-event-btn').style.display = 'none';
+  
+  const defaultStart = dateStr.includes('T') ? dateStr : `${dateStr}T09:00`;
+  document.getElementById('event-start').value = defaultStart.slice(0, 16);
+  
+  const defaultEnd = dateStr.includes('T') ? dateStr : `${dateStr}T10:00`;
+  document.getElementById('event-end').value = defaultEnd.slice(0, 16);
+}
+
+async function openEvent(eventId) {
+  const event = calendarEvents.find(e => e.id === eventId);
+  if (!event) return;
+  
+  document.getElementById('event-modal').classList.add('show');
+  document.getElementById('event-modal-title').textContent = 'Edit Event';
+  document.getElementById('event-id').value = event.id;
+  document.getElementById('event-title').value = event.title;
+  document.getElementById('event-category').value = event.category || 'other';
+  document.getElementById('event-all-day').checked = event.all_day;
+  document.getElementById('event-start').value = event.start_time.slice(0, 16);
+  document.getElementById('event-end').value = event.end_time ? event.end_time.slice(0, 16) : '';
+  document.getElementById('event-location').value = event.location || '';
+  document.getElementById('event-description').value = event.description || '';
+  document.getElementById('event-color').value = event.color || '#2563eb';
+  document.getElementById('delete-event-btn').style.display = event.created_by === JSON.parse(localStorage.getItem('user') || '{}').id ? 'block' : 'none';
+}
+
+function closeEventModal() {
+  document.getElementById('event-modal').classList.remove('show');
+}
+
+async function saveEvent(e) {
+  e.preventDefault();
+  
+  const eventData = {
+    title: document.getElementById('event-title').value,
+    category: document.getElementById('event-category').value,
+    allDay: document.getElementById('event-all-day').checked,
+    start: document.getElementById('event-start').value,
+    end: document.getElementById('event-end').value,
+    location: document.getElementById('event-location').value,
+    description: document.getElementById('event-description').value,
+    color: document.getElementById('event-color').value
+  };
+  
+  const eventId = document.getElementById('event-id').value;
+  
+  try {
+    if (eventId) {
+      await api(`/calendar/events/${eventId}`, {
+        method: 'PUT',
+        body: JSON.stringify(eventData)
+      });
+    } else {
+      await api('/calendar/events', {
+        method: 'POST',
+        body: JSON.stringify(eventData)
+      });
+    }
+    
+    closeEventModal();
+    loadCalendar();
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+async function deleteEvent() {
+  const eventId = document.getElementById('event-id').value;
+  if (!eventId) return;
+  
+  if (!confirm('Are you sure you want to delete this event?')) return;
+  
+  try {
+    await api(`/calendar/events/${eventId}`, { method: 'DELETE' });
+    closeEventModal();
+    loadCalendar();
+  } catch (error) {
+    alert(error.message);
+  }
+}

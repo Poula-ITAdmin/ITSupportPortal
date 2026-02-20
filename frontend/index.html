@@ -12,12 +12,29 @@
       <a href="#" class="logo" onclick="navigate('home'); return false;">IT Support Portal</a>
       <nav class="nav" id="nav">
         <a href="#" class="nav-link" onclick="navigate('home'); return false;" data-i18n="navHome">Home</a>
-        <a href="#" class="nav-link" id="my-tickets-link" onclick="navigate('my-tickets'); return false;" style="display:none" data-i18n="navMyTickets">My Tickets</a>
-        <a href="#" class="nav-link" id="dashboard-link" onclick="navigate('dashboard'); return false;" style="display:none" data-i18n="navDashboard">Dashboard</a>
-        <a href="#" class="nav-link" id="admin-link" onclick="navigate('admin'); return false;" style="display:none">Admin</a>
-        <span id="user-name"></span>
+        
+        <div class="user-dropdown" id="user-dropdown" style="display:none">
+          <button class="nav-link dropdown-toggle" onclick="toggleUserDropdown()">
+            <span id="user-name"></span> ▼
+          </button>
+          <div class="dropdown-menu" id="user-menu">
+            <div class="dropdown-header" id="dropdown-user-info"></div>
+            <div class="dropdown-divider"></div>
+            <a href="#" class="dropdown-item" id="nav-my-tickets" onclick="navigate('my-tickets'); return false;" style="display:none">My Tickets</a>
+            <a href="#" class="dropdown-item" id="nav-dashboard" onclick="navigate('dashboard'); return false;" style="display:none">My Dashboard</a>
+            <div id="admin-menu-items" style="display:none">
+              <div class="dropdown-divider"></div>
+              <div class="dropdown-header">Admin</div>
+              <a href="#" class="dropdown-item" onclick="navigate('admin'); return false;">Admin Dashboard</a>
+              <a href="#" class="dropdown-item" onclick="navigate('admin-users'); return false;">Manage Users</a>
+              <a href="#" class="dropdown-item" onclick="navigate('admin-tickets'); return false;">All Tickets</a>
+            </div>
+            <div class="dropdown-divider"></div>
+            <a href="#" class="dropdown-item" onclick="logout(); return false;" data-i18n="navLogout">Logout</a>
+          </div>
+        </div>
+        
         <a href="#" class="nav-link" id="login-link" onclick="showAuth('login'); return false;" data-i18n="navLogin">Login</a>
-        <a href="#" class="nav-link" id="logout-link" onclick="logout(); return false;" style="display:none" data-i18n="navLogout">Logout</a>
         <button class="btn btn-sm" onclick="toggleLanguage()" style="margin-left: 8px;" id="lang-toggle">العربية</button>
       </nav>
     </div>
@@ -132,155 +149,7 @@
             </div>
           </div>
           
-          <div id="devices-fields" class="dynamic-fields">
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Device Type</label>
-                <select class="form-select" id="device_type">
-                  <option value="">Select device type</option>
-                  <option value="Laptop">Laptop</option>
-                  <option value="Desktop">Desktop</option>
-                  <option value="Printer">Printer</option>
-                  <option value="Monitor">Monitor</option>
-                  <option value="Network">Network Equipment</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Asset Number</label>
-                <input type="text" class="form-input" id="asset_number" placeholder="e.g., LAP-001">
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Is the device working?</label>
-              <select class="form-select" id="device_working">
-                <option value="">Select status</option>
-                <option value="Yes">Yes, but has issues</option>
-                <option value="No">No, not working at all</option>
-              </select>
-            </div>
-          </div>
-          
-          <div id="personal-device-fields" class="dynamic-fields">
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Device Type</label>
-                <select class="form-select" id="device_type">
-                  <option value="">Select device type</option>
-                  <option value="Personal Laptop">Personal Laptop</option>
-                  <option value="Personal Desktop">Personal Desktop</option>
-                  <option value="Mobile Phone">Mobile Phone</option>
-                  <option value="Tablet">Tablet</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Device Owner</label>
-                <input type="text" class="form-input" id="device_owner" placeholder="Employee name">
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Issue Description</label>
-              <textarea class="form-textarea" id="personal_issue" placeholder="Describe the issue with your personal device"></textarea>
-            </div>
-          </div>
-          
-          <div id="medical-device-fields" class="dynamic-fields">
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Device Name</label>
-                <input type="text" class="form-input" id="medical_device_name" placeholder="e.g., MRI Scanner, Patient Monitor">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Device ID / Serial Number</label>
-                <input type="text" class="form-input" id="medical_device_id" placeholder="Medical device serial number">
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Department</label>
-                <input type="text" class="form-input" id="medical_department" placeholder="e.g., ICU, Radiology">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Urgency Level</label>
-                <select class="form-select" id="medical_urgency">
-                  <option value="">Select urgency</option>
-                  <option value="Critical">Critical - Patient care affected</option>
-                  <option value="High">High - Urgent</option>
-                  <option value="Medium">Medium - Needs attention</option>
-                  <option value="Low">Low - Can wait</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Issue Description</label>
-              <textarea class="form-textarea" id="medical_issue" placeholder="Describe the malfunction or issue"></textarea>
-            </div>
-          </div>
-          
-          <div id="software-fields" class="dynamic-fields">
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Software Name</label>
-                <input type="text" class="form-input" id="software_name" placeholder="e.g., ERP System, MS Excel">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Error Message (if any)</label>
-                <input type="text" class="form-input" id="error_message" placeholder="Paste error message here">
-              </div>
-            </div>
-          </div>
-          
-            <div id="access-fields" class="dynamic-fields">
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label">Application/System</label>
-                  <input type="text" class="form-input" id="application_access" placeholder="e.g., SharePoint, HR Portal">
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Current Role</label>
-                  <input type="text" class="form-input" id="current_role" placeholder="Your current role">
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Required Permissions</label>
-                <input type="text" class="form-input" id="required_permissions" placeholder="e.g., Admin access, Read/Write">
-              </div>
-            </div>
-            
-            <div id="maintenance-fields" class="dynamic-fields">
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label">Equipment/System Name</label>
-                  <input type="text" class="form-input" id="equipment_name" placeholder="e.g., HVAC System, Generator">
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Location</label>
-                  <input type="text" class="form-input" id="equipment_location" placeholder="e.g., Building A, Floor 2">
-                </div>
-              </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label">Maintenance Type</label>
-                  <select class="form-select" id="maintenance_type">
-                    <option value="">Select type</option>
-                    <option value="Preventive">Preventive Maintenance</option>
-                    <option value="Corrective">Corrective Repair</option>
-                    <option value="Inspection">Inspection</option>
-                    <option value="Installation">New Installation</option>
-                    <option value="Upgrade">Upgrade</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Scheduled Date (if applicable)</label>
-                  <input type="date" class="form-input" id="scheduled_date">
-                </div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Issue Description</label>
-                <textarea class="form-textarea" id="maintenance_description" placeholder="Describe the maintenance or repair needed"></textarea>
-              </div>
-            </div>
+          <div id="category-dynamic-container" class="dynamic-fields"></div>
           
           <div style="display: flex; gap: 12px; margin-top: 24px;">
             <button type="submit" class="btn btn-primary">Submit Ticket</button>
@@ -369,7 +238,7 @@
     </div>
 
     <div id="admin-page" class="page">
-      <h2 class="page-title" data-i18n="admin">Admin Panel</h2>
+      <h2 class="page-title">Admin Dashboard</h2>
       
       <div class="dashboard-stats" id="admin-stats"></div>
       
@@ -387,9 +256,12 @@
           <tbody id="workload-table"></tbody>
         </table>
       </div>
+    </div>
 
-      <div class="card" style="margin-top: 24px;">
-        <h3 style="margin-bottom: 16px;" data-i18n="allTickets">All Tickets</h3>
+    <div id="admin-tickets-page" class="page">
+      <h2 class="page-title">All Tickets</h2>
+      
+      <div class="card">
         <div class="filter-bar">
           <select id="admin-filter-category" onchange="loadAdminTickets()">
             <option value="" data-i18n="filterCategory">All Categories</option>
@@ -418,12 +290,6 @@
           <h2 id="auth-title">Login</h2>
           <div id="auth-alert"></div>
           <form id="auth-form" onsubmit="handleAuth(event)">
-            <div id="register-fields" style="display: none;">
-              <div class="form-group">
-                <label class="form-label">Full Name</label>
-                <input type="text" class="form-input" id="auth-name">
-              </div>
-            </div>
             <div class="form-group">
               <label class="form-label">Email</label>
               <input type="email" class="form-input" id="auth-email" required>
@@ -432,15 +298,169 @@
               <label class="form-label">Password</label>
               <input type="password" class="form-input" id="auth-password" required>
             </div>
-            <div id="dept-field" class="form-group" style="display: none;">
-              <label class="form-label">Department</label>
-              <input type="text" class="form-input" id="auth-dept">
-            </div>
             <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 16px;" id="auth-btn">Login</button>
           </form>
           <p style="margin-top: 20px; color: var(--text-light);">
-            <a href="#" onclick="toggleAuth()" id="auth-toggle">Don't have an account? Register</a>
+            <a href="#" onclick="showForgotPassword()" id="forgot-password-link">Forgot Password?</a>
           </p>
+        </div>
+      </div>
+    </div>
+
+    <div id="forgot-password-page" class="page">
+      <div class="auth-form">
+        <div class="logo">IT Support Portal</div>
+        <div class="card">
+          <h2>Reset Password</h2>
+          <div id="fp-alert"></div>
+          <form id="forgot-password-form" onsubmit="handleForgotPassword(event)">
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-input" id="fp-email" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Send Reset Link</button>
+          </form>
+          <p style="margin-top: 20px; color: var(--text-light);">
+            <a href="#" onclick="navigate('auth'); return false;">Back to Login</a>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div id="reset-password-page" class="page">
+      <div class="auth-form">
+        <div class="logo">IT Support Portal</div>
+        <div class="card">
+          <h2>New Password</h2>
+          <div id="rp-alert"></div>
+          <form id="reset-password-form" onsubmit="handleResetPassword(event)">
+            <div class="form-group">
+              <label class="form-label">New Password</label>
+              <input type="password" class="form-input" id="rp-password" required minlength="6">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Confirm Password</label>
+              <input type="password" class="form-input" id="rp-confirm" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 16px;">Reset Password</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div id="admin-users-page" class="page">
+      <div class="card" style="margin-bottom: 24px;">
+        <h2>Manage Users</h2>
+        <button class="btn btn-primary" onclick="showAddUserForm()" style="margin-top: 16px;">+ Add New User</button>
+        
+        <div id="add-user-form" style="display: none; margin-top: 20px; padding: 20px; background: var(--bg); border-radius: 8px;">
+          <h3>Add New User</h3>
+          <form id="user-form" onsubmit="handleUserSubmit(event)">
+            <div class="form-group">
+              <label class="form-label">Name</label>
+              <input type="text" class="form-input" id="new-user-name" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-input" id="new-user-email" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input type="password" class="form-input" id="new-user-password" required minlength="6">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Role</label>
+              <select class="form-input" id="new-user-role" onchange="toggleCategoryField()">
+                <option value="employee">Employee</option>
+                <option value="it_staff">IT Staff</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div class="form-group" id="category-field" style="display: none;">
+              <label class="form-label">Category</label>
+              <select class="form-input" id="new-user-category">
+                <option value="Hardware">Devices</option>
+                <option value="Personal Device">Personal Device</option>
+                <option value="Medical Device">Medical Device</option>
+                <option value="Software">Software</option>
+                <option value="Access">Access/Accounts</option>
+                <option value="Maintenance & Repairs">Maintenance & Repairs</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Department</label>
+              <input type="text" class="form-input" id="new-user-dept">
+            </div>
+            <button type="submit" class="btn btn-primary">Save User</button>
+            <button type="button" class="btn" onclick="hideAddUserForm()" style="margin-left: 8px;">Cancel</button>
+          </form>
+        </div>
+
+        <div id="edit-user-form" style="display: none; margin-top: 20px; padding: 20px; background: var(--bg); border-radius: 8px;">
+          <h3>Edit User</h3>
+          <form id="edit-user-form-submit" onsubmit="handleUserEdit(event)">
+            <input type="hidden" id="edit-user-id">
+            <div class="form-group">
+              <label class="form-label">Name</label>
+              <input type="text" class="form-input" id="edit-user-name" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-input" id="edit-user-email" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">New Password (leave blank to keep current)</label>
+              <input type="password" class="form-input" id="edit-user-password" minlength="6">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Role</label>
+              <select class="form-input" id="edit-user-role" onchange="toggleEditCategoryField()">
+                <option value="employee">Employee</option>
+                <option value="it_staff">IT Staff</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div class="form-group" id="edit-category-field" style="display: none;">
+              <label class="form-label">Category</label>
+              <select class="form-input" id="edit-user-category">
+                <option value="Hardware">Devices</option>
+                <option value="Personal Device">Personal Device</option>
+                <option value="Medical Device">Medical Device</option>
+                <option value="Software">Software</option>
+                <option value="Access">Access/Accounts</option>
+                <option value="Maintenance & Repairs">Maintenance & Repairs</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Department</label>
+              <input type="text" class="form-input" id="edit-user-dept">
+            </div>
+            <button type="submit" class="btn btn-primary">Update User</button>
+            <button type="button" class="btn" onclick="hideEditUserForm()" style="margin-left: 8px;">Cancel</button>
+          </form>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h3>All Users</h3>
+        <div id="users-list"></div>
+      </div>
+    </div>
+    <div id="chat-page" class="page">
+      <div class="chat-container">
+        <div class="chat-sidebar">
+          <h3>Channels</h3>
+          <div id="chat-channels-list"></div>
+        </div>
+        <div class="chat-main">
+          <div class="chat-header" id="chat-header">
+            <h3 id="chat-channel-name">Select a channel</h3>
+          </div>
+          <div class="chat-messages" id="chat-messages"></div>
+          <div class="chat-input">
+            <input type="text" id="chat-message-input" placeholder="Type a message..." onkeypress="handleChatKeyPress(event)">
+            <button class="btn btn-primary" onclick="sendChatMessage()">Send</button>
+          </div>
         </div>
       </div>
     </div>

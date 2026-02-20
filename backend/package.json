@@ -2,10 +2,10 @@
   "name": "itsupportportal-backend",
   "version": "1.0.0",
   "description": "IT Support Portal Backend API",
-  "main": "src/index.js",
+  "main": "",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js"
+    "start": "echo \"Node backend deprecated. Use Python/Flask backend (backend/app.py).\" && exit 1",
+    "dev": "echo \"Node backend deprecated. Use Python/Flask backend (backend/app.py).\" && exit 1"
   },
   "dependencies": {
     "express": "^4.18.2",

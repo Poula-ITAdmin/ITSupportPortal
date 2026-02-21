@@ -78,3 +78,4 @@ celerybeat-schedule
 # Node (if using npm)
 node_modules/
 npm-debug.log
+backend/env

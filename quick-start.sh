@@ -8,11 +8,19 @@ echo "🚀 IT Support Portal - Quick Start Setup"
 echo "========================================"
 echo ""
 
-# Check Python version
-echo "✓ Checking Python version..."
-PYTHON_VERSION=$(python3 -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
-if python3 -c 'import sys; exit(0 if sys.version_info >= (3,11) else 1)'; then
-    echo "  ✅ Python $PYTHON_VERSION found (3.11+)"
+# Select Python interpreter (prefer python3.11 when available)
+echo "✓ Locating Python interpreter..."
+if command -v python3.11 >/dev/null 2>&1; then
+    PYTHON_BIN=python3.11
+elif command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN=python3
+else
+    echo "  ❌ No python3 interpreter found on PATH"
+    exit 1
+fi
+PYTHON_VERSION=$($PYTHON_BIN -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
+if $PYTHON_BIN -c 'import sys; exit(0 if sys.version_info >= (3,11) else 1)'; then
+    echo "  ✅ Python $PYTHON_VERSION found (3.11+) using $PYTHON_BIN"
 else
     echo "  ❌ Python 3.11+ required (found $PYTHON_VERSION)"
     exit 1
@@ -21,11 +29,11 @@ fi
 # Navigate to backend directory
 cd backend
 
-# Create virtual environment if it doesn't exist
-if [ ! -d "venv" ]; then
+# Create virtual environment if it doesn't exist (use `env` to match existing conventions)
+if [ ! -d "env" ]; then
     echo ""
-    echo "✓ Creating Python virtual environment..."
-    python3.11 -m venv venv
+    echo "✓ Creating Python virtual environment (backend/env) using $PYTHON_BIN..."
+    $PYTHON_BIN -m venv env
     echo "  ✅ Virtual environment created"
 else
     echo "  ✅ Virtual environment already exists"
@@ -34,14 +42,29 @@ fi
 # Activate virtual environment
 echo ""
 echo "✓ Activating virtual environment..."
-source venv/bin/activate
+source env/bin/activate
 echo "  ✅ Virtual environment activated"
 
 # Install dependencies
 echo ""
-echo "✓ Installing Python dependencies..."
-pip install -q -r requirements.txt
-echo "  ✅ Dependencies installed"
+echo "✓ Upgrading packaging tools and installing Python dependencies..."
+python -m pip install --upgrade pip setuptools wheel
+if python -m pip install -q -r requirements.txt; then
+    echo "  ✅ Dependencies installed"
+else
+    echo "  ❌ pip failed to install some packages."
+    echo "  Common causes:"
+    echo "    - Building 'psycopg2' requires system package 'libpq-dev' (Debian/Ubuntu)."
+    echo "    - Some wheels may not yet be available for newer Python versions (e.g. Python 3.13)."
+    echo "  Fix options:" 
+    echo "    1) Install system build deps (Debian/Ubuntu):"
+    echo "       sudo apt update && sudo apt install -y libpq-dev build-essential python3-dev"
+    echo "    2) Install or use Python 3.11 for the virtualenv if available."
+    echo "       sudo apt install -y python3.11 python3.11-venv && re-run this script"
+    echo "    3) Use Docker: docker-compose up -d to avoid local build issues."
+    echo "  After fixing, re-run this script to retry."
+    exit 1
+fi
 
 # Create .env if it doesn't exist
 if [ ! -f ".env" ]; then
